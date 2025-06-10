@@ -12,6 +12,8 @@ def eval_edge_top(
     origin_node,
     dest_node,
     router_fun,       # <-- 新增一个参数，用来接 ls.router_h.get_route
+    df_G,
+    edge_index_map,
 ):
     """
     完全按照原 eval_edge 逻辑：复制 df，删边扰动，重建图，重新路由，打印调试，计算 score，记录 gen_log
@@ -85,6 +87,7 @@ def eval_edge_top(
     # last_route_error_delta = last_route_error - route_error_new
     # score = weight_delta + last_route_error_delta
     df_tmp = df_perturbed.copy()
+    new_df_G=df_G.copy()
     change1 = True
     change2 = True
     if user_model["max_curb_height"] > 0.2:
@@ -95,12 +98,20 @@ def eval_edge_top(
         if df_tmp.loc[idx, "curb_height_max"] <= user_model["max_curb_height"]:
             df_tmp.loc[idx, "curb_height_max"] = 0.2
             df_tmp.loc[idx, "include"] = 0
+            u, v, key =  edge_index_map.get(idx)
+            new_df_G.remove_edge(u, v, key)
+            if new_df_G.has_edge(v, u, key):
+                new_df_G.remove_edge(v, u, key)
             print(1)
         else:
             if(change2):
                 if df_tmp.loc[idx, "obstacle_free_width_float"] >= user_model["min_sidewalk_width"]:
                     df_tmp.loc[idx, "obstacle_free_width_float"] = 0.6
                     df_tmp.loc[idx, "include"] = 0
+                    u, v, key =  edge_index_map.get(idx)
+                    new_df_G.remove_edge(u, v, key)
+                    if new_df_G.has_edge(v, u, key):
+                        new_df_G.remove_edge(v, u, key)
                     print(2)
                 else:
                     print("无法扰动，error")
@@ -112,9 +123,9 @@ def eval_edge_top(
     # 建图
     
     try:
-        _,G_tmp = create_network_graph(df_tmp)
+        # _,G_tmp = create_network_graph(df_tmp)
         fact_path_new, _, df_fact_path_new = router_fun(
-            G_tmp,
+            new_df_G,
             origin_node,
             dest_node,
             'my_weight'
@@ -133,4 +144,4 @@ def eval_edge_top(
     last_route_error_delta=last_route_error-route_error_new
     score = weight_delta + last_route_error_delta  # 调参，怎么组合自己玩
 
-    return score, idx, df_tmp, df_fact_path_new, route_error_new
+    return score, idx, df_tmp, df_fact_path_new, route_error_new,new_df_G
