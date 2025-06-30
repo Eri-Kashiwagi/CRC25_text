@@ -33,9 +33,9 @@ def handle_weight(df,  user_model):
         df.loc[df['path_type'] == 'walk', 'my_weight'] = df['my_weight'] * user_model["walk_bike_preference_weight_factor"]
     elif user_model["walk_bike_preference"] == 'bike':
         df.loc[df['path_type'] == 'bike', 'my_weight'] = df['my_weight'] * user_model["walk_bike_preference_weight_factor"]
-    
+    maxx_weight=df['my_weight'].abs().max()
     df['my_weight'] = df['my_weight'] /df['my_weight'].abs().max()
-    return df
+    return df,maxx_weight
 
 def handle_weight_with_recovery(df, user_model):
 
