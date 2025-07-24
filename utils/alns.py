@@ -40,28 +40,21 @@ def repair_search_delete(
     df_perturbed,
     user_model,
 ):
-    change1 = True
-    change2 = True
-    if user_model["max_curb_height"] > 0.2:
-        change1 = False
-    if user_model["min_sidewalk_width"] > 2:
-        change2 = False
     backup_row = {
         "curb_height_max": df_perturbed.at[idx, "curb_height_max"],
         "obstacle_free_width_float": df_perturbed.at[idx, "obstacle_free_width_float"],
         "include": df_perturbed.at[idx, "include"],
     }
     flag1=0
-    if(change1):
-        if df_perturbed.loc[idx, "curb_height_max"] <= user_model["max_curb_height"]:
-            backup_row["curb_height_max"] = 0.2
+    if df_perturbed.loc[idx, "curb_height_max"] <= user_model["max_curb_height"]:
+        backup_row["curb_height_max"] = user_model["max_curb_height"]+0.1
+        backup_row["include"] = 0
+    else:
+        if df_perturbed.loc[idx, "obstacle_free_width_float"] >= user_model["min_sidewalk_width"]:
+            backup_row["obstacle_free_width_float"] = user_model["min_sidewalk_width"]-0.1
             backup_row["include"] = 0
         else:
-            if(change2):
-                if df_perturbed.loc[idx, "obstacle_free_width_float"] >= user_model["min_sidewalk_width"]:
-                    backup_row["obstacle_free_width_float"] = 0.6
-                    backup_row["include"] = 0
-                    # print(2)
+             return None
     weight_delta = df_perturbed.loc[idx, "my_weight"]
     score = weight_delta
     return score, idx, backup_row

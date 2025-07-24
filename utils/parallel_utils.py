@@ -19,12 +19,6 @@ def eval_edge_top(
     """
     完全按照原 eval_edge 逻辑：复制 df，删边扰动，重建图，重新路由，打印调试，计算 score，记录 gen_log
     """
-    change1 = True
-    change2 = True
-    if user_model["max_curb_height"] > 0.2:
-        change1 = False
-    if user_model["min_sidewalk_width"] > 2:
-        change2 = False
     u, v, k = edge_index_map[idx]
     data_backup = df_G[u][v][k].copy()
     backup_row = {
@@ -33,23 +27,23 @@ def eval_edge_top(
         "include": df_perturbed.at[idx, "include"],
     }
     flag1=0
-    if(change1):
-        if df_perturbed.loc[idx, "curb_height_max"] <= user_model["max_curb_height"]:
-            backup_row["curb_height_max"] = 0.2
+    if df_perturbed.loc[idx, "curb_height_max"] <= user_model["max_curb_height"]:
+        backup_row["curb_height_max"] = user_model["max_curb_height"]+0.1
+        backup_row["include"] = 0
+        df_G.remove_edge(u, v, k)
+        if not data_backup.get("oneway", True):
+            flag1=1
+            df_G.remove_edge(v,u, k)
+    else:
+        if df_perturbed.loc[idx, "obstacle_free_width_float"] >= user_model["min_sidewalk_width"]:
+            backup_row["obstacle_free_width_float"] = user_model["min_sidewalk_width"]-0.1
             backup_row["include"] = 0
             df_G.remove_edge(u, v, k)
             if not data_backup.get("oneway", True):
                 flag1=1
                 df_G.remove_edge(v,u, k)
         else:
-            if(change2):
-                if df_perturbed.loc[idx, "obstacle_free_width_float"] >= user_model["min_sidewalk_width"]:
-                    backup_row["obstacle_free_width_float"] = 0.6
-                    backup_row["include"] = 0
-                    df_G.remove_edge(u, v, k)
-                    if not data_backup.get("oneway", True):
-                        flag1=1
-                        df_G.remove_edge(v,u, k)
+            return None
     
     try:
         # _,G_tmp = create_network_graph(df_tmp)
